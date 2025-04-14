@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ResearchAI - Your AI Research Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                500: "#6366f1",
+                600: "#4f46e5",
+              },
+              dark: {
+                800: "#1e293b",
+                900: "#0f172a",
+              },
+            },
+            animation: {
+              "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .typing-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .typing-indicator span {
+        height: 8px;
+        width: 8px;
+        background: currentColor;
+        border-radius: 50%;
+        display: inline-block;
+        animation: bounce 1.3s infinite ease-in-out;
+      }
+      .typing-indicator span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .typing-indicator span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+      @keyframes bounce {
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+        }
+        30% {
+          transform: translateY(-5px);
+        }
+      }
+      .fade-in {
+        animation: fadeIn 0.3s ease-in;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .gradient-text {
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        background-image: linear-gradient(to right, #6366f1, #8b5cf6);
+      }
+      .message-container {
+        scroll-behavior: smooth;
+      }
+      .input-textarea {
+        scrollbar-width: thin;
+        scrollbar-color: #c7d2fe #f1f5f9;
+      }
+      .input-textarea::-webkit-scrollbar {
+        width: 6px;
+      }
+      .input-textarea::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 3px;
+      }
+      .input-textarea::-webkit-scrollbar-thumb {
+        background-color: #c7d2fe;
+        border-radius: 3px;
+      }
+      .dark .input-textarea::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+      .dark .input-textarea::-webkit-scrollbar-thumb {
+        background-color: #4f46e5;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-50 dark:bg-dark-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col transition-colors duration-200"
+  >
+    <!-- Header -->
+    <header
+      class="sticky top-0 z-10 bg-white/80 dark:bg-dark-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800"
+    >
+      <div
+        class="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between"
+      >
+        <div class="flex items-center space-x-3">
+          <div
+            class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center"
+          >
+            <i class="fas fa-robot text-white text-lg"></i>
+          </div>
+          <h1
+            class="text-xl font-bold bg-gradient-to-r from-primary-500 to-indigo-500 bg-clip-text text-transparent"
+          >
+            ResearchAI
+          </h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <button
+            id="theme-toggle"
+            class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <i
+              id="theme-icon"
+              class="fas fa-moon text-gray-500 dark:text-gray-400"
+            ></i>
+          </button>
+          <button
+            class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors"
+          >
+            <i class="fas fa-sign-in-alt text-gray-500 dark:text-gray-400"></i>
+            <span>Sign In</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 sm:px-6">
+      <!-- Welcome Section -->
+      <div
+        id="welcome-section"
+        class="flex-1 flex flex-col items-center justify-center py-8 sm:py-12 text-center"
+      >
+        <div
+          class="w-20 h-20 mb-6 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center shadow-lg"
+        >
+          <i class="fas fa-robot text-white text-3xl"></i>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-bold mb-3">
+          Ask <span class="gradient-text">Anything</span>
+        </h2>
+        <p class="text-lg text-gray-500 dark:text-gray-400 max-w-md">
+          Your AI research assistant. Get detailed answers with reliable
+          sources.
+        </p>
+
+        <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-lg">
+          <div
+            class="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-primary-500 dark:hover:border-primary-500 transition-colors cursor-pointer"
+          >
+            <h3 class="font-medium mb-1.5">Market Trends</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Analyze current industry trends
+            </p>
+          </div>
+          <div
+            class="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-primary-500 dark:hover:border-primary-500 transition-colors cursor-pointer"
+          >
+            <h3 class="font-medium mb-1.5">Competitor Analysis</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Compare competitors' strategies
+            </p>
+          </div>
+          <div
+            class="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-primary-500 dark:hover:border-primary-500 transition-colors cursor-pointer"
+          >
+            <h3 class="font-medium mb-1.5">Tech Insights</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Latest technological advancements
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Section -->
+      <div id="chat-section" class="hidden flex-1 flex flex-col">
+        <div
+          id="messages"
+          class="flex-1 overflow-y-auto py-4 space-y-6 message-container"
+        ></div>
+      </div>
+
+      <!-- Input Area -->
+      <div
+        class="sticky bottom-0 bg-white/80 dark:bg-dark-900/80 backdrop-blur-sm pt-4 pb-6 border-t border-gray-200 dark:border-gray-800"
+      >
+        <div class="relative">
+          <form id="query-form" method="POST" action="/ask" class="relative">
+            <label for="user-input" class="sr-only">Ask me anything</label>
+            <textarea
+              id="user-input"
+              rows="1"
+              name="question"
+              placeholder="Ask me anything..."
+              aria-label="Type your question here"
+              class="input-textarea w-full px-4 py-3 pr-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none transition-all"
+              style="min-height: 56px; max-height: 200px"
+            ></textarea>
+            <button
+              type="submit"
+              id="submit-btn"
+              aria-label="Send message"
+              class="absolute right-2 bottom-2 w-10 h-10 bg-gradient-to-br from-primary-500 to-indigo-500 text-white rounded-lg flex items-center justify-center hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+              disabled
+            >
+              <i class="fas fa-paper-plane text-sm"></i>
+            </button>
+          </form>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+            ResearchAI may produce inaccurate information. Verify important
+            facts.
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // DOM Elements
+        const form = document.getElementById("query-form");
+        const userInput = document.getElementById("user-input");
+        const messagesContainer = document.getElementById("messages");
+        const submitBtn = document.getElementById("submit-btn");
+        const themeToggle = document.getElementById("theme-toggle");
+        const themeIcon = document.getElementById("theme-icon");
+        const welcomeSection = document.getElementById("welcome-section");
+        const chatSection = document.getElementById("chat-section");
+
+        // Initialize theme
+        function initTheme() {
+          const darkMode =
+            localStorage.getItem("darkMode") === "true" ||
+            (!localStorage.getItem("darkMode") &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+          if (darkMode) {
+            document.documentElement.classList.add("dark");
+            themeIcon.classList.replace("fa-moon", "fa-sun");
+          } else {
+            document.documentElement.classList.remove("dark");
+            themeIcon.classList.replace("fa-sun", "fa-moon");
+          }
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+          const isDark = document.documentElement.classList.toggle("dark");
+          localStorage.setItem("darkMode", isDark);
+
+          if (isDark) {
+            themeIcon.classList.replace("fa-moon", "fa-sun");
+          } else {
+            themeIcon.classList.replace("fa-sun", "fa-moon");
+          }
+        }
+
+        // Initialize theme on load
+        initTheme();
+
+        // Theme toggle event
+        themeToggle.addEventListener("click", toggleTheme);
+
+        // Auto-resize textarea
+        userInput.addEventListener("input", function () {
+          this.style.height = "auto";
+          this.style.height = this.scrollHeight + "px";
+          submitBtn.disabled = this.value.trim() === "";
+        });
+
+        // Handle form submission
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          const query = userInput.value.trim();
+          if (query === "") return;
+
+          // Hide welcome section and show chat
+          if (welcomeSection.style.display !== "none") {
+            welcomeSection.classList.add("hidden");
+            chatSection.classList.remove("hidden");
+          }
+
+          // Add user message
+          addMessage("user", query);
+
+          // Clear input
+          userInput.value = "";
+          userInput.style.height = "auto";
+          submitBtn.disabled = true;
+
+          // Show typing indicator
+          const typingIndicator = document.createElement("div");
+          typingIndicator.className = "flex space-x-4 fade-in";
+          typingIndicator.innerHTML = `
+    <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center">
+      <i class="fas fa-robot text-white text-lg"></i>
+    </div>
+    <div class="flex-1 min-w-0">
+      <div class="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 w-full">
+        <div class="typing-indicator text-gray-500 dark:text-gray-400">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">ResearchAI is thinking...</p>
+    </div>
+  `;
+          messagesContainer.appendChild(typingIndicator);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+          // Make actual API call to Flask backend
+          fetch("/ask", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: `question=${encodeURIComponent(query)}`,
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              // Remove typing indicator
+              messagesContainer.removeChild(typingIndicator);
+
+              // Format the response with sources
+              let responseHTML = `
+      <div class="space-y-4">
+        <h3 class="font-semibold text-lg text-gray-800 dark:text-white">Research Summary: ${query}</h3>
+        <p class="text-gray-700 dark:text-gray-300">${data.answer}</p>
+    `;
+
+              if (data.sources && data.sources.length > 0) {
+                responseHTML += `
+        <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 dark:border-blue-600 p-4 rounded-r-lg">
+          <h4 class="font-medium text-blue-700 dark:text-blue-300 mb-2">Verified Sources:</h4>
+          <ul class="text-sm space-y-2">
+      `;
+
+                data.sources.forEach((source) => {
+                  responseHTML += `
+          <li>
+            <a href="${source.url}" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline flex items-start">
+              <span class="mr-2">📄</span>
+              <span>${source.title}</span>
+            </a>
+          </li>
+        `;
+                });
+
+                responseHTML += `
+          </ul>
+        </div>
+      `;
+              }
+
+              responseHTML += `</div>`;
+              addMessage("assistant", responseHTML);
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              messagesContainer.removeChild(typingIndicator);
+              addMessage(
+                "assistant",
+                "❌ An error occurred while processing your request. Please try again."
+              );
+            });
+        });
+
+        // Add message to chat
+        function addMessage(role, content) {
+          const messageDiv = document.createElement("div");
+          messageDiv.className = `flex space-x-4 fade-in`;
+
+          if (role === "user") {
+            messageDiv.innerHTML = `
+                        <div class="flex-shrink-0 w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                            <i class="fas fa-user text-gray-600 dark:text-gray-300"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 w-full">
+                                ${content}
+                            </div>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">Just now</p>
+                        </div>
+                    `;
+          } else {
+            messageDiv.innerHTML = `
+                        <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center">
+                            <i class="fas fa-robot text-white text-lg"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 w-full">
+                                ${content}
+                            </div>
+                            <div class="flex items-center justify-between mt-1.5">
+                                <p class="text-xs text-gray-400 dark:text-gray-500">ResearchAI • Just now</p>
+                                <div class="flex space-x-2">
+                                    <button class="text-xs text-gray-400 dark:text-gray-500 hover:text-primary-500 dark:hover:text-primary-400 transition-colors">
+                                        <i class="fas fa-thumbs-up"></i>
+                                    </button>
+                                    <button class="text-xs text-gray-400 dark:text-gray-500 hover:text-primary-500 dark:hover:text-primary-400 transition-colors">
+                                        <i class="fas fa-thumbs-down"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+          }
+
+          messagesContainer.appendChild(messageDiv);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Allow Shift+Enter for new line, Enter to submit
+        userInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            form.dispatchEvent(new Event("submit"));
+          }
+        });
+
+        // Listen for system theme changes
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", (e) => {
+            if (!localStorage.getItem("darkMode")) {
+              initTheme();
+            }
+          });
+
+        // Sample questions click handlers
+        document
+          .querySelectorAll('#welcome-section [class*="hover:border-primary"]')
+          .forEach((item) => {
+            item.addEventListener("click", function () {
+              const question = this.querySelector("h3").textContent;
+              userInput.value = question;
+              userInput.dispatchEvent(new Event("input"));
+              userInput.focus();
+            });
+          });
+      });
+    </script>
+  </body>
+</html>
