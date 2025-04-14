@@ -12,8 +12,8 @@ app = Flask(__name__)
 
 # Configuration
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
-port = os.getenv("PORT")
-MODEL_NAME = "sshleifer/distilbart-cnn-6-6"  # Smaller model for faster loading
+PORT = int(os.getenv("PORT", 10000))  # Convert to int and provide default
+MODEL_NAME = "sshleifer/distilbart-cnn-6-6"
 
 # Initialize model lazily
 summarizer = None
@@ -21,27 +21,37 @@ summarizer = None
 def get_summarizer():
     global summarizer
     if summarizer is None:
-        summarizer = pipeline("summarization", model=MODEL_NAME)
+        app.logger.info("Loading summarization model...")
+        summarizer = pipeline(
+            "summarization", 
+            model=MODEL_NAME,
+            device=-1  # Use CPU (-1) instead of GPU if not available
+        )
     return summarizer
 
 def search_web(query):
     """Search the web using Tavily API"""
-    url = "https://api.tavily.com/search"
-    headers = {"Authorization": TAVILY_API_KEY}
-    payload = {"query": query, "max_results": 3}
-    
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        response = requests.post(
+            "https://api.tavily.com/search",
+            headers={"Authorization": TAVILY_API_KEY},
+            json={
+                "query": query,
+                "max_results": 3,
+                "include_raw_content": True  # Get full content
+            },
+            timeout=15  # Increased timeout for API calls
+        )
         response.raise_for_status()
         data = response.json()
         
         return [{
-            "content": result["content"],
+            "content": result.get("content", ""),
             "title": result.get("title", "Untitled"),
             "url": result.get("url", "#")
         } for result in data.get("results", [])]
     
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         app.logger.error(f"Search error: {str(e)}")
         return []
 
@@ -64,7 +74,7 @@ def ask():
             })
         
         combined = " ".join([r["content"] for r in results])
-        summary = get_summarizer()(combined[:1000])[0]['summary_text']
+        summary = get_summarizer()(combined[:1000], max_length=150)[0]['summary_text']
         
         return jsonify({
             "answer": summary,
@@ -72,11 +82,14 @@ def ask():
         })
         
     except Exception as e:
-        app.logger.error(f"Error processing request: {str(e)}")
+        app.logger.error(f"Error processing request: {str(e)}", exc_info=True)
         return jsonify({
             "answer": "❌ An error occurred while processing your request.",
             "sources": []
         })
 
+def create_app():
+    return app
+
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=port, threaded=True)
+    app.run(host='0.0.0.0', port=PORT, threaded=True)
